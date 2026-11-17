@@ -1,0 +1,18 @@
+[Unit]
+Description=Wait for DNS resolution before mounting remote filesystems
+Documentation=https://www.freedesktop.org/software/systemd/man/systemd.special.html
+DefaultDependencies=no
+After=systemd-udevd.service network.target network-online.target nss-lookup.target
+Wants=network-online.target nss-lookup.target remote-fs-pre.target
+Before=remote-fs-pre.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=-/etc/default/dns-online
+ExecStart=/usr/bin/dns-online
+TimeoutStartSec=180s
+
+[Install]
+WantedBy=remote-fs.target multi-user.target

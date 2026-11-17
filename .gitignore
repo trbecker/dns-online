@@ -1,0 +1,24 @@
+# Built binary
+/dns-online
+
+# Go build & test artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.*
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Editor & OS files
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

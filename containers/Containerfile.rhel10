@@ -1,0 +1,44 @@
+# Reusable RHEL 10 (UBI 10) builder container for dns-online
+#
+# 1. Build the reusable builder image once:
+#    - On a subscribed RHEL host:
+#        podman build -f containers/Containerfile.rhel10 -t dns-online-builder:rhel10 .
+#    - With RHSM secret file (RHSM_ORG & RHSM_ACTIVATIONKEY, or RHSM_USER & RHSM_PASS):
+#        podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel10 -t dns-online-builder:rhel10 .
+#    - With build args:
+#        podman build --build-arg RHSM_ORG=... --build-arg RHSM_ACTIVATIONKEY=... -f containers/Containerfile.rhel10 -t dns-online-builder:rhel10 .
+#
+# 2. Run the container anytime to build the binary and RPMs from the mounted workspace:
+#      mkdir -p dist/rhel10
+#      podman run --rm -v .:/src:ro,Z -v ./dist/rhel10:/out:Z dns-online-builder:rhel10
+
+FROM registry.access.redhat.com/ubi10/ubi:latest
+
+ARG RHSM_ORG=""
+ARG RHSM_ACTIVATIONKEY=""
+ARG RHSM_USER=""
+ARG RHSM_PASS=""
+
+RUN --mount=type=secret,id=rhsm,required=false \
+    set -e; \
+    REGISTERED=0; \
+    if [ -f /run/secrets/rhsm ]; then \
+        . /run/secrets/rhsm; \
+    fi; \
+    if [ -n "${RHSM_ORG}" ] && [ -n "${RHSM_ACTIVATIONKEY}" ]; then \
+        subscription-manager register --org="${RHSM_ORG}" --activationkey="${RHSM_ACTIVATIONKEY}"; \
+        REGISTERED=1; \
+    elif [ -n "${RHSM_USER}" ] && [ -n "${RHSM_PASS}" ]; then \
+        subscription-manager register --username="${RHSM_USER}" --password="${RHSM_PASS}" --auto-attach; \
+        REGISTERED=1; \
+    fi; \
+    trap 'if [ "${REGISTERED}" -eq 1 ]; then subscription-manager unregister || true; fi' EXIT; \
+    dnf install -y gcc golang make rpm-build systemd-rpm-macros tar; \
+    dnf clean all
+
+COPY containers/build-pkg.sh /usr/local/bin/build-pkg.sh
+RUN chmod 0755 /usr/local/bin/build-pkg.sh
+
+VOLUME ["/src", "/out"]
+WORKDIR /src
+ENTRYPOINT ["/usr/local/bin/build-pkg.sh"]

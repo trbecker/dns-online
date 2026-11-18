@@ -22,3 +22,12 @@ go.work.sum
 *~
 .idea/
 .vscode/
+
+# Local RHSM credentials for container builds
+rhsm.env
+
+# Container build output directory
+/dist/
+
+# Build output
+dist/*

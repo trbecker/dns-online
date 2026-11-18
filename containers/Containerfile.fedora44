@@ -1,0 +1,21 @@
+# Reusable Fedora 44 builder container for dns-online
+#
+# 1. Build the reusable builder image once:
+#      podman build -f containers/Containerfile.fedora44 -t dns-online-builder:fedora44 .
+#
+# 2. Run the container anytime to build the binary and RPMs from the mounted workspace:
+#      mkdir -p dist/fedora44
+#      podman run --rm -v .:/src:ro,Z -v ./dist/fedora44:/out:Z dns-online-builder:fedora44
+
+FROM registry.fedoraproject.org/fedora:44
+
+RUN set -e; \
+    dnf install -y gcc golang make rpm-build systemd-rpm-macros tar; \
+    dnf clean all
+
+COPY containers/build-pkg.sh /usr/local/bin/build-pkg.sh
+RUN chmod 0755 /usr/local/bin/build-pkg.sh
+
+VOLUME ["/src", "/out"]
+WORKDIR /src
+ENTRYPOINT ["/usr/local/bin/build-pkg.sh"]

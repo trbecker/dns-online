@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/bigkevmcd/go-configparser"
 )
 
 const DefaultConfigPath = "/etc/default/dns-online"
@@ -245,47 +247,77 @@ func detectConfigPath(args []string, getenv func(string) string) (string, bool) 
 	return DefaultConfigPath, false
 }
 
-// parseEnvFile parses a simple KEY=VALUE environment file (such as /etc/default/dns-online).
+// parseEnvFile parses a configuration file (such as /etc/default/dns-online) using go-configparser.
+// It supports both INI-style files with section headers and headerless KEY=VALUE environment files.
 func parseEnvFile(path string) (map[string]string, error) {
-	f, err := os.Open(path)
+	raw, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
 
-	result := make(map[string]string)
-	scanner := bufio.NewScanner(f)
+	var buf bytes.Buffer
+	buf.WriteString("[DEFAULT]\n")
 	lineNum := 0
-	for scanner.Scan() {
+	for _, line := range strings.Split(string(raw), "\n") {
 		lineNum++
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") || strings.HasPrefix(trimmed, ";") {
 			continue
 		}
-		line = strings.TrimPrefix(line, "export ")
-		line = strings.TrimSpace(line)
-
-		eqIdx := strings.Index(line, "=")
-		if eqIdx <= 0 {
+		if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") {
+			buf.WriteString(trimmed)
+			buf.WriteByte('\n')
+			continue
+		}
+		if strings.HasPrefix(trimmed, "export ") {
+			trimmed = strings.TrimSpace(strings.TrimPrefix(trimmed, "export "))
+		}
+		if strings.Index(trimmed, "=") <= 0 {
 			return nil, fmt.Errorf("line %d: expected KEY=VALUE", lineNum)
 		}
-
-		key := strings.TrimSpace(line[:eqIdx])
-		val := strings.TrimSpace(line[eqIdx+1:])
-
-		// Strip surrounding quotes if present, else strip inline comments
-		if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
-			val = val[1 : len(val)-1]
-		} else if idx := strings.Index(val, " #"); idx != -1 {
-			val = strings.TrimSpace(val[:idx])
-		}
-
-		result[key] = val
+		buf.WriteString(trimmed)
+		buf.WriteByte('\n')
 	}
-	if err := scanner.Err(); err != nil {
+
+	p, err := configparser.ParseReaderWithOptions(
+		&buf,
+		configparser.Delimiters("="),
+	)
+	if err != nil {
 		return nil, err
 	}
+
+	result := make(map[string]string)
+	collect := func(items configparser.Dict) {
+		for k, v := range items {
+			result[strings.TrimSpace(k)] = cleanConfigValue(v)
+		}
+	}
+
+	collect(p.Defaults())
+	for _, section := range p.Sections() {
+		items, err := p.Items(section)
+		if err != nil {
+			return nil, err
+		}
+		collect(items)
+	}
+
 	return result, nil
+}
+
+func cleanConfigValue(val string) string {
+	val = strings.TrimSpace(val)
+	if len(val) >= 2 && ((val[0] == '"' && val[len(val)-1] == '"') || (val[0] == '\'' && val[len(val)-1] == '\'')) {
+		return val[1 : len(val)-1]
+	}
+	if idx := strings.Index(val, " #"); idx != -1 {
+		val = strings.TrimSpace(val[:idx])
+	}
+	if idx := strings.Index(val, "\t#"); idx != -1 {
+		val = strings.TrimSpace(val[:idx])
+	}
+	return val
 }
 
 func splitHosts(raw string) []string {

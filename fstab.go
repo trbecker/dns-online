@@ -1,12 +1,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"net/url"
 	"os"
 	"strings"
+
+	fstab "github.com/deniswernert/go-fstab"
 )
 
 // ParseFstabFile reads an fstab file from the given path and extracts unique NFS/CIFS server hostnames.
@@ -21,31 +22,17 @@ func ParseFstabFile(path string, includeNoauto bool) ([]string, error) {
 
 // ParseFstab extracts unique remote server hostnames (NFS and CIFS/SMB) from an fstab reader.
 func ParseFstab(r io.Reader, includeNoauto bool) ([]string, error) {
+	mounts, err := fstab.Parse(r)
+	if err != nil {
+		return nil, fmt.Errorf("parsing fstab: %w", err)
+	}
+
 	var hosts []string
 	seen := make(map[string]struct{})
 
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		// Strip inline comments
-		if idx := strings.Index(line, " #"); idx != -1 {
-			line = strings.TrimSpace(line[:idx])
-		}
-		if idx := strings.Index(line, "\t#"); idx != -1 {
-			line = strings.TrimSpace(line[:idx])
-		}
-
-		fields := strings.Fields(line)
-		if len(fields) < 3 {
-			continue
-		}
-
-		spec := unescapeFstabField(fields[0])
-		fsType := strings.ToLower(fields[2])
+	for _, mount := range mounts {
+		spec := unescapeFstabField(mount.Spec)
+		fsType := strings.ToLower(mount.VfsType)
 
 		var extracted []string
 		switch fsType {
@@ -57,9 +44,8 @@ func ParseFstab(r io.Reader, includeNoauto bool) ([]string, error) {
 			continue
 		}
 
-		if !includeNoauto && len(fields) >= 4 {
-			opts := strings.Split(fields[3], ",")
-			if hasOption(opts, "noauto") {
+		if !includeNoauto {
+			if _, hasNoauto := mount.MntOps["noauto"]; hasNoauto {
 				continue
 			}
 		}
@@ -75,20 +61,7 @@ func ParseFstab(r io.Reader, includeNoauto bool) ([]string, error) {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("reading fstab: %w", err)
-	}
-
 	return hosts, nil
-}
-
-func hasOption(opts []string, target string) bool {
-	for _, opt := range opts {
-		if strings.TrimSpace(opt) == target {
-			return true
-		}
-	}
-	return false
 }
 
 func unescapeFstabField(s string) string {

@@ -132,21 +132,15 @@ func extractCIFSHosts(spec string) []string {
 		return nil
 	}
 
-	// Handle bracketed IPv6 literal: //[2001:db8::20]/share or //[2001:db8::20]:445/share
+	// Handle bracketed IPv6 literal: //[2001:db8::20]/share
 	if strings.HasPrefix(hostPart, "[") {
-		endBracket := strings.Index(hostPart, "]")
-		if endBracket > 1 {
-			return []string{hostPart[1:endBracket]}
+		if strings.HasSuffix(hostPart, "]") && len(hostPart) > 2 {
+			return []string{hostPart[1 : len(hostPart)-1]}
 		}
 		return nil
 	}
 
-	// Strip optional :port if present
-	if colonIdx := strings.Index(hostPart, ":"); colonIdx != -1 {
-		hostPart = hostPart[:colonIdx]
-	}
-
-	if hostPart != "" {
+	if hostPart != "" && !strings.Contains(hostPart, ":") {
 		return []string{hostPart}
 	}
 	return nil

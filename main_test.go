@@ -26,7 +26,7 @@ backup.internal.lan:/backups /mnt/backups nfs rw,noauto 0 0
 failover1.local,failover2.local:/ha /mnt/ha nfs defaults 0 0
 //smb1.internal.lan/share /mnt/smb1 cifs credentials=/etc/creds,_netdev 0 0
 \\smb2.internal.lan\docs /mnt/smb2 smb3 defaults 0 0
-//[2001:db8::20]:445/archive /mnt/smb-ipv6 cifs defaults 0 0
+//[2001:db8::20]/archive /mnt/smb-ipv6 cifs defaults 0 0
 //smb-noauto.internal.lan/scratch /mnt/scratch cifs noauto,rw 0 0
 `
 
@@ -67,6 +67,56 @@ failover1.local,failover2.local:/ha /mnt/ha nfs defaults 0 0
 	}
 	if !reflect.DeepEqual(hostsWithNoauto, expectedWithNoauto) {
 		t.Errorf("ParseFstab(includeNoauto=true) = %v, want %v", hostsWithNoauto, expectedWithNoauto)
+	}
+}
+
+func TestParseInvalidFstab(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+		wantErr string
+	}{
+		{
+			name:    "too few fields",
+			content: "nas1.internal.lan:/volume1/media /mnt/media nfs\n",
+			wantErr: "too few fields",
+		},
+		{
+			name:    "non-numeric dump frequency",
+			content: "nas1.internal.lan:/volume1/media /mnt/media nfs defaults notanumber 0\n",
+			wantErr: "is not a number",
+		},
+		{
+			name:    "non-numeric fsck pass number",
+			content: "nas1.internal.lan:/volume1/media /mnt/media nfs defaults 0 notanumber\n",
+			wantErr: "not a number",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := ParseFstab(strings.NewReader(tc.content), false)
+			if err == nil {
+				t.Fatalf("expected error containing %q, got nil", tc.wantErr)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("ParseFstab error = %q, want substring %q", err.Error(), tc.wantErr)
+			}
+
+			// Also verify ParseConfig propagates invalid fstab syntax errors when -fstab is enabled
+			fstabFile := filepath.Join(t.TempDir(), "fstab")
+			if writeErr := os.WriteFile(fstabFile, []byte(tc.content), 0600); writeErr != nil {
+				t.Fatal(writeErr)
+			}
+			var stderr bytes.Buffer
+			_, cfgErr := ParseConfig([]string{"-fstab", "-fstab-path", fstabFile}, func(string) string { return "" }, &stderr)
+			if cfgErr == nil {
+				t.Fatalf("ParseConfig expected error containing %q, got nil", tc.wantErr)
+			}
+			if !strings.Contains(cfgErr.Error(), tc.wantErr) {
+				t.Errorf("ParseConfig error = %q, want substring %q", cfgErr.Error(), tc.wantErr)
+			}
+		})
 	}
 }
 
@@ -324,7 +374,7 @@ func TestParseDefaultConfigFile(t *testing.T) {
 
 	var stderr bytes.Buffer
 	cfg, err := ParseConfig(
-		[]string{"-config", "systemd/dns-online.default", "-fstab-path", fstabFile},
+		[]string{"-config", "systemd/dns-online.default", "-fstab-path", fstabFile, "--"},
 		func(string) string { return "" },
 		&stderr,
 	)
@@ -472,7 +522,7 @@ func TestParseConfigValidationErrors(t *testing.T) {
 	}{
 		{
 			name:    "explicit config file missing",
-			args:    []string{"-config=" + missingCfg, "host.local"},
+			args:    []string{"--config=" + missingCfg, "host.local"},
 			wantErr: "loading config file",
 		},
 		{
@@ -533,10 +583,72 @@ func TestParseConfigValidationErrors(t *testing.T) {
 	}
 }
 
+func TestParseConfigInvalidCLIFlags(t *testing.T) {
+	noopEnv := func(string) string { return "" }
+
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr string
+	}{
+		{
+			name:    "unknown flag",
+			args:    []string{"-unknown-flag", "host.local"},
+			wantErr: "flag provided but not defined: -unknown-flag",
+		},
+		{
+			name:    "invalid boolean flag value",
+			args:    []string{"-fstab=notabool", "host.local"},
+			wantErr: "invalid boolean value \"notabool\" for -fstab",
+		},
+		{
+			name:    "invalid timeout duration flag value",
+			args:    []string{"-timeout=notaduration", "host.local"},
+			wantErr: "invalid value \"notaduration\" for flag -timeout",
+		},
+		{
+			name:    "invalid interval duration flag value",
+			args:    []string{"-interval=notaduration", "host.local"},
+			wantErr: "invalid value \"notaduration\" for flag -interval",
+		},
+		{
+			name:    "invalid query-timeout duration flag value",
+			args:    []string{"-query-timeout=notaduration", "host.local"},
+			wantErr: "invalid value \"notaduration\" for flag -query-timeout",
+		},
+		{
+			name:    "missing argument for value flag",
+			args:    []string{"-hosts"},
+			wantErr: "flag needs an argument: -hosts",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var stderr bytes.Buffer
+			_, err := ParseConfig(tc.args, noopEnv, &stderr)
+			if err == nil {
+				t.Fatalf("expected error containing %q, got nil", tc.wantErr)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("ParseConfig error = %q, want substring %q", err.Error(), tc.wantErr)
+			}
+
+			// Verify run() maps invalid CLI flags to exit code 2 (configuration error)
+			var runStdout, runStderr bytes.Buffer
+			code := run(context.Background(), tc.args, noopEnv, &mockResolver{}, &runStdout, &runStderr)
+			if code != 2 {
+				t.Errorf("run() exit code = %d, want 2", code)
+			}
+		})
+	}
+}
+
 type mockResolver struct {
-	mu      sync.Mutex
-	calls   map[string]int
-	handler func(host string, attempt int) ([]net.IP, error)
+	mu       sync.Mutex
+	calls    map[string]int
+	networks []string
+	handler  func(host string, attempt int) ([]net.IP, error)
 }
 
 func (m *mockResolver) LookupIP(ctx context.Context, network, host string) ([]net.IP, error) {
@@ -546,6 +658,7 @@ func (m *mockResolver) LookupIP(ctx context.Context, network, host string) ([]ne
 	}
 	m.calls[host]++
 	attempt := m.calls[host]
+	m.networks = append(m.networks, network)
 	m.mu.Unlock()
 	return m.handler(host, attempt)
 }
@@ -630,5 +743,33 @@ func TestWaitForDNSTimeout(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unreachable.local") {
 		t.Errorf("error %q did not mention unresolved host", err.Error())
+	}
+}
+
+func TestIPv6Only(t *testing.T) {
+	var stderr bytes.Buffer
+	cfg, err := ParseConfig([]string{"-6", "ipv6-nas.local"}, func(string) string { return "" }, &stderr)
+	if err != nil {
+		t.Fatalf("ParseConfig(-6) returned unexpected error: %v", err)
+	}
+	if !cfg.IPv6Only || cfg.IPv4Only {
+		t.Errorf("expected IPv6Only=true and IPv4Only=false, got IPv6Only=%v IPv4Only=%v", cfg.IPv6Only, cfg.IPv4Only)
+	}
+	if cfg.Network() != "ip6" {
+		t.Errorf("cfg.Network() = %q, want %q", cfg.Network(), "ip6")
+	}
+
+	resolver := &mockResolver{
+		handler: func(host string, attempt int) ([]net.IP, error) {
+			return []net.IP{net.ParseIP("2001:db8::1")}, nil
+		},
+	}
+
+	if err := WaitForDNS(context.Background(), cfg, resolver, func(string, ...any) {}); err != nil {
+		t.Fatalf("WaitForDNS failed: %v", err)
+	}
+
+	if len(resolver.networks) != 1 || resolver.networks[0] != "ip6" {
+		t.Errorf("LookupIP network calls = %v, want [\"ip6\"]", resolver.networks)
 	}
 }

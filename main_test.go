@@ -23,7 +23,6 @@ nas2.internal.lan:/export/data /mnt/data nfs4 rw,hard,intr 0 0 # inline comment
 nas1.internal.lan:/volume1/other /mnt/other nfs defaults 0 0
 backup.internal.lan:/backups /mnt/backups nfs rw,noauto 0 0
 [2001:db8::10]:/share /mnt/ipv6 nfs4 defaults 0 0
-nfs://fileserver.example.com:2049/pub /mnt/pub nfs4 defaults 0 0
 failover1.local,failover2.local:/ha /mnt/ha nfs defaults 0 0
 //smb1.internal.lan/share /mnt/smb1 cifs credentials=/etc/creds,_netdev 0 0
 \\smb2.internal.lan\docs /mnt/smb2 smb3 defaults 0 0
@@ -40,7 +39,6 @@ failover1.local,failover2.local:/ha /mnt/ha nfs defaults 0 0
 		"nas1.internal.lan",
 		"nas2.internal.lan",
 		"2001:db8::10",
-		"fileserver.example.com",
 		"failover1.local",
 		"failover2.local",
 		"smb1.internal.lan",
@@ -60,7 +58,6 @@ failover1.local,failover2.local:/ha /mnt/ha nfs defaults 0 0
 		"nas2.internal.lan",
 		"backup.internal.lan",
 		"2001:db8::10",
-		"fileserver.example.com",
 		"failover1.local",
 		"failover2.local",
 		"smb1.internal.lan",

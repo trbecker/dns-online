@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"strings"
 
@@ -75,20 +74,10 @@ func unescapeFstabField(s string) string {
 }
 
 // extractNFSHosts extracts one or more server hostnames from an NFS mount spec.
-// Supports standard "host:/path", "[ipv6]:/path", comma-separated failover "host1,host2:/path",
-// and URL-style "nfs://host[:port]/path".
+// Supports standard "host:/path", "[ipv6]:/path", and comma-separated failover "host1,host2:/path".
 func extractNFSHosts(spec string) []string {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
-		return nil
-	}
-
-	// Handle URL-style nfs:// or nfs4://
-	if strings.HasPrefix(spec, "nfs://") || strings.HasPrefix(spec, "nfs4://") {
-		u, err := url.Parse(spec)
-		if err == nil && u.Hostname() != "" {
-			return []string{u.Hostname()}
-		}
 		return nil
 	}
 
@@ -111,11 +100,7 @@ func extractNFSHosts(spec string) []string {
 	var result []string
 	for _, rawHost := range strings.Split(hostPart, ",") {
 		rawHost = strings.TrimSpace(rawHost)
-		// Strip optional mount-specific user@ prefix if present
-		if atIdx := strings.LastIndex(rawHost, "@"); atIdx != -1 {
-			rawHost = rawHost[atIdx+1:]
-		}
-		if rawHost != "" {
+		if rawHost != "" && !strings.Contains(rawHost, "@") {
 			result = append(result, rawHost)
 		}
 	}
@@ -123,7 +108,7 @@ func extractNFSHosts(spec string) []string {
 }
 
 // extractCIFSHosts extracts the server hostname from a CIFS/SMB mount spec.
-// Supports "//host/share", "//[ipv6]/share", "\\host\share", and "smb://host/share" / "cifs://host/share".
+// Supports "//host/share", "//[ipv6]/share", and "\\host\share".
 func extractCIFSHosts(spec string) []string {
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
@@ -132,21 +117,37 @@ func extractCIFSHosts(spec string) []string {
 
 	// Normalize backslashes (UNC paths like \\server\share) to forward slashes
 	normalized := strings.ReplaceAll(spec, `\`, `/`)
+	if !strings.HasPrefix(normalized, "//") {
+		return nil
+	}
 
-	if strings.HasPrefix(normalized, "smb://") || strings.HasPrefix(normalized, "cifs://") {
-		u, err := url.Parse(normalized)
-		if err == nil && u.Hostname() != "" {
-			return []string{u.Hostname()}
+	rest := normalized[2:]
+	slashIdx := strings.Index(rest, "/")
+	if slashIdx <= 0 {
+		return nil
+	}
+
+	hostPart := rest[:slashIdx]
+	if strings.Contains(hostPart, "@") {
+		return nil
+	}
+
+	// Handle bracketed IPv6 literal: //[2001:db8::20]/share or //[2001:db8::20]:445/share
+	if strings.HasPrefix(hostPart, "[") {
+		endBracket := strings.Index(hostPart, "]")
+		if endBracket > 1 {
+			return []string{hostPart[1:endBracket]}
 		}
 		return nil
 	}
 
-	if strings.HasPrefix(normalized, "//") {
-		u, err := url.Parse("cifs:" + normalized)
-		if err == nil && u.Hostname() != "" {
-			return []string{u.Hostname()}
-		}
+	// Strip optional :port if present
+	if colonIdx := strings.Index(hostPart, ":"); colonIdx != -1 {
+		hostPart = hostPart[:colonIdx]
 	}
 
+	if hostPart != "" {
+		return []string{hostPart}
+	}
 	return nil
 }

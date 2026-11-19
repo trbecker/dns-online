@@ -1,4 +1,4 @@
-BINARY      ?= dns-online
+BINARY      ?= wait-dns-online
 PREFIX      ?= /usr
 BINDIR      ?= $(PREFIX)/bin
 SYSTEMDDIR  ?= /etc/systemd/system
@@ -30,14 +30,14 @@ install: build
 	install -d $(DESTDIR)$(BINDIR)
 	install -m 0755 $(BINARY) $(DESTDIR)$(BINDIR)/$(BINARY)
 	install -d $(DESTDIR)$(SYSTEMDDIR)
-	install -m 0644 systemd/dns-online.service $(DESTDIR)$(SYSTEMDDIR)/dns-online.service
+	install -m 0644 systemd/wait-dns-online.service $(DESTDIR)$(SYSTEMDDIR)/wait-dns-online.service
 	install -d $(DESTDIR)$(DEFAULTDIR)
-	@if [ ! -f $(DESTDIR)$(DEFAULTDIR)/dns-online ]; then \
-		install -m 0644 systemd/dns-online.default $(DESTDIR)$(DEFAULTDIR)/dns-online; \
+	@if [ ! -f $(DESTDIR)$(DEFAULTDIR)/wait-dns-online ]; then \
+		install -m 0644 systemd/wait-dns-online.default $(DESTDIR)$(DEFAULTDIR)/wait-dns-online; \
 	else \
-		echo "$(DESTDIR)$(DEFAULTDIR)/dns-online already exists, skipping overwrite"; \
+		echo "$(DESTDIR)$(DEFAULTDIR)/wait-dns-online already exists, skipping overwrite"; \
 	fi
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/$(BINARY)
-	rm -f $(DESTDIR)$(SYSTEMDDIR)/dns-online.service
+	rm -f $(DESTDIR)$(SYSTEMDDIR)/wait-dns-online.service

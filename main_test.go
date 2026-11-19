@@ -123,13 +123,13 @@ func TestParseInvalidFstab(t *testing.T) {
 func TestParseConfigPrecedenceAndFstabMerge(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	cfgFile := filepath.Join(tmpDir, "dns-online.conf")
+	cfgFile := filepath.Join(tmpDir, "wait-dns-online.conf")
 	err := os.WriteFile(cfgFile, []byte(`
 # Sample config
-DNS_ONLINE_HOSTS="cfg-host1.local cfg-host2.local"
-DNS_ONLINE_FSTAB=true
-DNS_ONLINE_TIMEOUT=45s
-DNS_ONLINE_INTERVAL=500ms
+WAIT_DNS_ONLINE_HOSTS="cfg-host1.local cfg-host2.local"
+WAIT_DNS_ONLINE_FSTAB=true
+WAIT_DNS_ONLINE_TIMEOUT=45s
+WAIT_DNS_ONLINE_INTERVAL=500ms
 `), 0600)
 	if err != nil {
 		t.Fatal(err)
@@ -144,9 +144,9 @@ fstab-nas.local:/export /mnt/nfs nfs4 defaults 0 0
 	}
 
 	envMap := map[string]string{
-		"DNS_ONLINE_CONFIG":     cfgFile,
-		"DNS_ONLINE_FSTAB_PATH": fstabFile,
-		"DNS_ONLINE_TIMEOUT":    "30s", // Overrides config file's 45s
+		"WAIT_DNS_ONLINE_CONFIG":     cfgFile,
+		"WAIT_DNS_ONLINE_FSTAB_PATH": fstabFile,
+		"WAIT_DNS_ONLINE_TIMEOUT":    "30s", // Overrides config file's 45s
 	}
 	getenv := func(k string) string { return envMap[k] }
 
@@ -211,10 +211,10 @@ func TestParseConfigCLIHosts(t *testing.T) {
 func TestParseConfigCLIHostsOverrideAndFstabMerge(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	cfgFile := filepath.Join(tmpDir, "dns-online.conf")
+	cfgFile := filepath.Join(tmpDir, "wait-dns-online.conf")
 	err := os.WriteFile(cfgFile, []byte(`
-DNS_ONLINE_HOSTS="cfg-host1.local cfg-host2.local"
-DNS_ONLINE_FSTAB=true
+WAIT_DNS_ONLINE_HOSTS="cfg-host1.local cfg-host2.local"
+WAIT_DNS_ONLINE_FSTAB=true
 `), 0600)
 	if err != nil {
 		t.Fatal(err)
@@ -231,9 +231,9 @@ cli-pos.local:/share /mnt/share nfs defaults 0 0
 	}
 
 	envMap := map[string]string{
-		"DNS_ONLINE_CONFIG":     cfgFile,
-		"DNS_ONLINE_FSTAB_PATH": fstabFile,
-		"DNS_ONLINE_HOSTS":      "env-host1.local env-host2.local",
+		"WAIT_DNS_ONLINE_CONFIG":     cfgFile,
+		"WAIT_DNS_ONLINE_FSTAB_PATH": fstabFile,
+		"WAIT_DNS_ONLINE_HOSTS":      "env-host1.local env-host2.local",
 	}
 	getenv := func(k string) string { return envMap[k] }
 
@@ -263,19 +263,19 @@ cli-pos.local:/share /mnt/share nfs defaults 0 0
 
 func TestParseEnvFileFormatsAndQuotes(t *testing.T) {
 	tmpDir := t.TempDir()
-	cfgFile := filepath.Join(tmpDir, "dns-online.conf")
+	cfgFile := filepath.Join(tmpDir, "wait-dns-online.conf")
 
 	content := `
 # Full-line hash comment
 ; Full-line semicolon comment
 
-export DNS_ONLINE_HOSTS="host1.example.com, host2.example.com # kept inside quotes"
-DNS_ONLINE_FSTAB = true # trailing inline comment
-DNS_ONLINE_FSTAB_PATH = '/custom/etc/fstab'
+export WAIT_DNS_ONLINE_HOSTS="host1.example.com, host2.example.com # kept inside quotes"
+WAIT_DNS_ONLINE_FSTAB = true # trailing inline comment
+WAIT_DNS_ONLINE_FSTAB_PATH = '/custom/etc/fstab'
 
-[dns-online]
-DNS_ONLINE_TIMEOUT = 90s	# tab inline comment
-DNS_ONLINE_QUERY_TIMEOUT = 3s
+[wait-dns-online]
+WAIT_DNS_ONLINE_TIMEOUT = 90s	# tab inline comment
+WAIT_DNS_ONLINE_QUERY_TIMEOUT = 3s
 `
 	if err := os.WriteFile(cfgFile, []byte(content), 0600); err != nil {
 		t.Fatal(err)
@@ -287,11 +287,11 @@ DNS_ONLINE_QUERY_TIMEOUT = 3s
 	}
 
 	want := map[string]string{
-		"DNS_ONLINE_HOSTS":         "host1.example.com, host2.example.com # kept inside quotes",
-		"DNS_ONLINE_FSTAB":         "true",
-		"DNS_ONLINE_FSTAB_PATH":    "/custom/etc/fstab",
-		"DNS_ONLINE_TIMEOUT":       "90s",
-		"DNS_ONLINE_QUERY_TIMEOUT": "3s",
+		"WAIT_DNS_ONLINE_HOSTS":         "host1.example.com, host2.example.com # kept inside quotes",
+		"WAIT_DNS_ONLINE_FSTAB":         "true",
+		"WAIT_DNS_ONLINE_FSTAB_PATH":    "/custom/etc/fstab",
+		"WAIT_DNS_ONLINE_TIMEOUT":       "90s",
+		"WAIT_DNS_ONLINE_QUERY_TIMEOUT": "3s",
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("parseEnvFile() = %#v, want %#v", got, want)
@@ -302,7 +302,7 @@ func TestParseEnvFileMalformedLine(t *testing.T) {
 	tmpDir := t.TempDir()
 	cfgFile := filepath.Join(tmpDir, "bad.conf")
 
-	if err := os.WriteFile(cfgFile, []byte("DNS_ONLINE_FSTAB=true\nINVALID_LINE_WITHOUT_EQUALS\n"), 0600); err != nil {
+	if err := os.WriteFile(cfgFile, []byte("WAIT_DNS_ONLINE_FSTAB=true\nINVALID_LINE_WITHOUT_EQUALS\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -326,16 +326,16 @@ func TestParseConfigAllOptionsFromConfigFile(t *testing.T) {
 
 	cfgContent := `
 [DEFAULT]
-DNS_ONLINE_HOSTS="explicit.local"
-DNS_ONLINE_FSTAB=true
-DNS_ONLINE_FSTAB_PATH=` + fstabFile + `
-DNS_ONLINE_INCLUDE_NOAUTO=true
-DNS_ONLINE_ANY=true
-DNS_ONLINE_TIMEOUT=1m30s
-DNS_ONLINE_INTERVAL=2s
-DNS_ONLINE_QUERY_TIMEOUT=4s
-DNS_ONLINE_IPV4=true
-DNS_ONLINE_QUIET=true
+WAIT_DNS_ONLINE_HOSTS="explicit.local"
+WAIT_DNS_ONLINE_FSTAB=true
+WAIT_DNS_ONLINE_FSTAB_PATH=` + fstabFile + `
+WAIT_DNS_ONLINE_INCLUDE_NOAUTO=true
+WAIT_DNS_ONLINE_ANY=true
+WAIT_DNS_ONLINE_TIMEOUT=1m30s
+WAIT_DNS_ONLINE_INTERVAL=2s
+WAIT_DNS_ONLINE_QUERY_TIMEOUT=4s
+WAIT_DNS_ONLINE_IPV4=true
+WAIT_DNS_ONLINE_QUIET=true
 `
 	if err := os.WriteFile(cfgFile, []byte(cfgContent), 0600); err != nil {
 		t.Fatal(err)
@@ -374,25 +374,25 @@ func TestParseDefaultConfigFile(t *testing.T) {
 
 	var stderr bytes.Buffer
 	cfg, err := ParseConfig(
-		[]string{"-config", "systemd/dns-online.default", "-fstab-path", fstabFile, "--"},
+		[]string{"-config", "systemd/wait-dns-online.default", "-fstab-path", fstabFile, "--"},
 		func(string) string { return "" },
 		&stderr,
 	)
 	if err != nil {
-		t.Fatalf("ParseConfig with systemd/dns-online.default failed: %v", err)
+		t.Fatalf("ParseConfig with systemd/wait-dns-online.default failed: %v", err)
 	}
 
 	if !cfg.UseFstab {
-		t.Errorf("UseFstab = false, want true from systemd/dns-online.default")
+		t.Errorf("UseFstab = false, want true from systemd/wait-dns-online.default")
 	}
 	if cfg.Timeout != 2*time.Minute {
-		t.Errorf("Timeout = %v, want 2m from systemd/dns-online.default", cfg.Timeout)
+		t.Errorf("Timeout = %v, want 2m from systemd/wait-dns-online.default", cfg.Timeout)
 	}
 	if cfg.Interval != 1*time.Second {
-		t.Errorf("Interval = %v, want 1s from systemd/dns-online.default", cfg.Interval)
+		t.Errorf("Interval = %v, want 1s from systemd/wait-dns-online.default", cfg.Interval)
 	}
 	if cfg.QueryTimeout != 5*time.Second {
-		t.Errorf("QueryTimeout = %v, want 5s from systemd/dns-online.default", cfg.QueryTimeout)
+		t.Errorf("QueryTimeout = %v, want 5s from systemd/wait-dns-online.default", cfg.QueryTimeout)
 	}
 	wantHosts := []string{"default-nas.local"}
 	if !reflect.DeepEqual(cfg.Hosts, wantHosts) {
@@ -410,79 +410,79 @@ func TestParseConfigInvalidConfigFileVariables(t *testing.T) {
 		wantErr    string
 	}{
 		{
-			name:       "invalid DNS_ONLINE_HOSTS (whitespace/delimiters only)",
-			cfgContent: "DNS_ONLINE_HOSTS=\" , \t \"\nDNS_ONLINE_FSTAB=false\n",
+			name:       "invalid WAIT_DNS_ONLINE_HOSTS (whitespace/delimiters only)",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=\" , \t \"\nWAIT_DNS_ONLINE_FSTAB=false\n",
 			wantErr:    "no hostnames specified",
 		},
 		{
-			name:       "invalid DNS_ONLINE_FSTAB",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_FSTAB=notabool\n",
-			wantErr:    "invalid DNS_ONLINE_FSTAB",
+			name:       "invalid WAIT_DNS_ONLINE_FSTAB",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_FSTAB=notabool\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_FSTAB",
 		},
 		{
-			name:       "invalid DNS_ONLINE_FSTAB_PATH (nonexistent file when fstab enabled)",
-			cfgContent: "DNS_ONLINE_FSTAB=true\nDNS_ONLINE_FSTAB_PATH=" + missingFstab + "\n",
+			name:       "invalid WAIT_DNS_ONLINE_FSTAB_PATH (nonexistent file when fstab enabled)",
+			cfgContent: "WAIT_DNS_ONLINE_FSTAB=true\nWAIT_DNS_ONLINE_FSTAB_PATH=" + missingFstab + "\n",
 			wantErr:    "opening fstab",
 		},
 		{
-			name:       "invalid DNS_ONLINE_INCLUDE_NOAUTO",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_INCLUDE_NOAUTO=notabool\n",
-			wantErr:    "invalid DNS_ONLINE_INCLUDE_NOAUTO",
+			name:       "invalid WAIT_DNS_ONLINE_INCLUDE_NOAUTO",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_INCLUDE_NOAUTO=notabool\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_INCLUDE_NOAUTO",
 		},
 		{
-			name:       "invalid DNS_ONLINE_ANY",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_ANY=notabool\n",
-			wantErr:    "invalid DNS_ONLINE_ANY",
+			name:       "invalid WAIT_DNS_ONLINE_ANY",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_ANY=notabool\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_ANY",
 		},
 		{
-			name:       "invalid DNS_ONLINE_TIMEOUT (unparseable duration)",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_TIMEOUT=notaduration\n",
-			wantErr:    "invalid DNS_ONLINE_TIMEOUT",
+			name:       "invalid WAIT_DNS_ONLINE_TIMEOUT (unparseable duration)",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_TIMEOUT=notaduration\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_TIMEOUT",
 		},
 		{
-			name:       "invalid DNS_ONLINE_TIMEOUT (negative duration)",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_TIMEOUT=-10s\n",
+			name:       "invalid WAIT_DNS_ONLINE_TIMEOUT (negative duration)",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_TIMEOUT=-10s\n",
 			wantErr:    "timeout cannot be negative",
 		},
 		{
-			name:       "invalid DNS_ONLINE_INTERVAL (unparseable duration)",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_INTERVAL=notaduration\n",
-			wantErr:    "invalid DNS_ONLINE_INTERVAL",
+			name:       "invalid WAIT_DNS_ONLINE_INTERVAL (unparseable duration)",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_INTERVAL=notaduration\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_INTERVAL",
 		},
 		{
-			name:       "invalid DNS_ONLINE_INTERVAL (zero duration)",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_INTERVAL=0s\n",
+			name:       "invalid WAIT_DNS_ONLINE_INTERVAL (zero duration)",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_INTERVAL=0s\n",
 			wantErr:    "interval must be greater than 0",
 		},
 		{
-			name:       "invalid DNS_ONLINE_QUERY_TIMEOUT (unparseable duration)",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_QUERY_TIMEOUT=notaduration\n",
-			wantErr:    "invalid DNS_ONLINE_QUERY_TIMEOUT",
+			name:       "invalid WAIT_DNS_ONLINE_QUERY_TIMEOUT (unparseable duration)",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_QUERY_TIMEOUT=notaduration\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_QUERY_TIMEOUT",
 		},
 		{
-			name:       "invalid DNS_ONLINE_QUERY_TIMEOUT (zero duration)",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_QUERY_TIMEOUT=0s\n",
+			name:       "invalid WAIT_DNS_ONLINE_QUERY_TIMEOUT (zero duration)",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_QUERY_TIMEOUT=0s\n",
 			wantErr:    "query-timeout must be greater than 0",
 		},
 		{
-			name:       "invalid DNS_ONLINE_IPV4",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_IPV4=notabool\n",
-			wantErr:    "invalid DNS_ONLINE_IPV4",
+			name:       "invalid WAIT_DNS_ONLINE_IPV4",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_IPV4=notabool\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_IPV4",
 		},
 		{
-			name:       "invalid DNS_ONLINE_IPV6",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_IPV6=notabool\n",
-			wantErr:    "invalid DNS_ONLINE_IPV6",
+			name:       "invalid WAIT_DNS_ONLINE_IPV6",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_IPV6=notabool\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_IPV6",
 		},
 		{
-			name:       "mutually exclusive DNS_ONLINE_IPV4 and DNS_ONLINE_IPV6",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_IPV4=true\nDNS_ONLINE_IPV6=true\n",
+			name:       "mutually exclusive WAIT_DNS_ONLINE_IPV4 and WAIT_DNS_ONLINE_IPV6",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_IPV4=true\nWAIT_DNS_ONLINE_IPV6=true\n",
 			wantErr:    "cannot specify both -4",
 		},
 		{
-			name:       "invalid DNS_ONLINE_QUIET",
-			cfgContent: "DNS_ONLINE_HOSTS=host.local\nDNS_ONLINE_QUIET=notabool\n",
-			wantErr:    "invalid DNS_ONLINE_QUIET",
+			name:       "invalid WAIT_DNS_ONLINE_QUIET",
+			cfgContent: "WAIT_DNS_ONLINE_HOSTS=host.local\nWAIT_DNS_ONLINE_QUIET=notabool\n",
+			wantErr:    "invalid WAIT_DNS_ONLINE_QUIET",
 		},
 	}
 
@@ -510,7 +510,7 @@ func TestParseConfigValidationErrors(t *testing.T) {
 	missingCfg := filepath.Join(tmpDir, "does-not-exist.conf")
 
 	badBoolCfg := filepath.Join(tmpDir, "bad-bool.conf")
-	if err := os.WriteFile(badBoolCfg, []byte("DNS_ONLINE_FSTAB=notabool\n"), 0600); err != nil {
+	if err := os.WriteFile(badBoolCfg, []byte("WAIT_DNS_ONLINE_FSTAB=notabool\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -528,13 +528,13 @@ func TestParseConfigValidationErrors(t *testing.T) {
 		{
 			name:    "invalid boolean in config file",
 			args:    []string{"-config=" + badBoolCfg, "host.local"},
-			wantErr: "invalid DNS_ONLINE_FSTAB",
+			wantErr: "invalid WAIT_DNS_ONLINE_FSTAB",
 		},
 		{
 			name:    "invalid duration in env",
 			args:    []string{"-config=", "host.local"},
-			env:     map[string]string{"DNS_ONLINE_TIMEOUT": "notaduration"},
-			wantErr: "invalid DNS_ONLINE_TIMEOUT",
+			env:     map[string]string{"WAIT_DNS_ONLINE_TIMEOUT": "notaduration"},
+			wantErr: "invalid WAIT_DNS_ONLINE_TIMEOUT",
 		},
 		{
 			name:    "both -4 and -6 specified",

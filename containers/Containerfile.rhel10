@@ -1,16 +1,16 @@
-# Reusable RHEL 10 (UBI 10) builder container for dns-online
+# Reusable RHEL 10 (UBI 10) builder container for wait-dns-online
 #
 # 1. Build the reusable builder image once:
 #    - On a subscribed RHEL host:
-#        podman build -f containers/Containerfile.rhel10 -t dns-online-builder:rhel10 .
+#        podman build -f containers/Containerfile.rhel10 -t wait-dns-online-builder:rhel10 .
 #    - With RHSM secret file (RHSM_ORG & RHSM_ACTIVATIONKEY, or RHSM_USER & RHSM_PASS):
-#        podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel10 -t dns-online-builder:rhel10 .
+#        podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel10 -t wait-dns-online-builder:rhel10 .
 #    - With build args:
-#        podman build --build-arg RHSM_ORG=... --build-arg RHSM_ACTIVATIONKEY=... -f containers/Containerfile.rhel10 -t dns-online-builder:rhel10 .
+#        podman build --build-arg RHSM_ORG=... --build-arg RHSM_ACTIVATIONKEY=... -f containers/Containerfile.rhel10 -t wait-dns-online-builder:rhel10 .
 #
 # 2. Run the container anytime to build the binary and RPMs from the mounted workspace:
 #      mkdir -p dist/rhel10
-#      podman run --rm -v .:/src:ro,Z -v ./dist/rhel10:/out:Z dns-online-builder:rhel10
+#      podman run --rm -v .:/src:ro,Z -v ./dist/rhel10:/out:Z wait-dns-online-builder:rhel10
 
 FROM registry.access.redhat.com/ubi10/ubi:latest
 

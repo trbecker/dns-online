@@ -1,16 +1,16 @@
-# Reusable RHEL 8 (UBI 8) builder container for dns-online
+# Reusable RHEL 8 (UBI 8) builder container for wait-dns-online
 #
 # 1. Build the reusable builder image once:
 #    - On a subscribed RHEL host:
-#        podman build -f containers/Containerfile.rhel8 -t dns-online-builder:rhel8 .
+#        podman build -f containers/Containerfile.rhel8 -t wait-dns-online-builder:rhel8 .
 #    - With RHSM secret file (RHSM_ORG & RHSM_ACTIVATIONKEY, or RHSM_USER & RHSM_PASS):
-#        podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel8 -t dns-online-builder:rhel8 .
+#        podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel8 -t wait-dns-online-builder:rhel8 .
 #    - With build args:
-#        podman build --build-arg RHSM_ORG=... --build-arg RHSM_ACTIVATIONKEY=... -f containers/Containerfile.rhel8 -t dns-online-builder:rhel8 .
+#        podman build --build-arg RHSM_ORG=... --build-arg RHSM_ACTIVATIONKEY=... -f containers/Containerfile.rhel8 -t wait-dns-online-builder:rhel8 .
 #
 # 2. Run the container anytime to build the binary and RPMs from the mounted workspace:
 #      mkdir -p dist/rhel8
-#      podman run --rm -v .:/src:ro,Z -v ./dist/rhel8:/out:Z dns-online-builder:rhel8
+#      podman run --rm -v .:/src:ro,Z -v ./dist/rhel8:/out:Z wait-dns-online-builder:rhel8
 
 FROM registry.access.redhat.com/ubi8/ubi:latest
 

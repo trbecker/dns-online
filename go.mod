@@ -1,4 +1,4 @@
-module dns-online
+module wait-dns-online
 
 go 1.21
 

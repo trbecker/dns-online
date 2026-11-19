@@ -25,7 +25,7 @@ import (
 var integrationBinary string
 
 func TestMain(m *testing.M) {
-	tmpDir, err := os.MkdirTemp("", "dns-online-integration-*")
+	tmpDir, err := os.MkdirTemp("", "wait-dns-online-integration-*")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create temp dir: %v\n", err)
 		os.Exit(1)
@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	defer os.RemoveAll(tmpDir)
 	_ = os.Chmod(tmpDir, 0755)
 
-	integrationBinary = filepath.Join(tmpDir, "dns-online")
+	integrationBinary = filepath.Join(tmpDir, "wait-dns-online")
 	cmd := exec.Command("go", "build", "-trimpath", "-tags", "netcgo", "-o", integrationBinary, ".")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to build integration test binary: %v\n%s\n", err, string(out))
@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// runBinary executes the compiled dns-online binary with isolated environment variables.
+// runBinary executes the compiled wait-dns-online binary with isolated environment variables.
 func runBinary(t *testing.T, args []string, extraEnv map[string]string) (stdout, stderr string, exitCode int) {
 	t.Helper()
 
@@ -139,21 +139,21 @@ func TestIntegrationBinaryConfigAndFstabEndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfgPath := filepath.Join(tmpDir, "dns-online.conf")
+	cfgPath := filepath.Join(tmpDir, "wait-dns-online.conf")
 	cfgContent := strings.Join([]string{
 		"# Integration test configuration",
-		"DNS_ONLINE_FSTAB=true",
-		"DNS_ONLINE_TIMEOUT=5s",
-		"DNS_ONLINE_INTERVAL=50ms",
-		"DNS_ONLINE_QUERY_TIMEOUT=1s",
+		"WAIT_DNS_ONLINE_FSTAB=true",
+		"WAIT_DNS_ONLINE_TIMEOUT=5s",
+		"WAIT_DNS_ONLINE_INTERVAL=50ms",
+		"WAIT_DNS_ONLINE_QUERY_TIMEOUT=1s",
 	}, "\n") + "\n"
 	if err := os.WriteFile(cfgPath, []byte(cfgContent), 0600); err != nil {
 		t.Fatal(err)
 	}
 
 	env := map[string]string{
-		"DNS_ONLINE_CONFIG":     cfgPath,
-		"DNS_ONLINE_FSTAB_PATH": fstabPath,
+		"WAIT_DNS_ONLINE_CONFIG":     cfgPath,
+		"WAIT_DNS_ONLINE_FSTAB_PATH": fstabPath,
 	}
 
 	t.Run("skips noauto entries and resolves active fstab hosts", func(t *testing.T) {
@@ -240,7 +240,7 @@ func TestIntegrationBinaryConfigErrorsAndHelp(t *testing.T) {
 			name:       "help flag exits 0",
 			args:       []string{"-config=", "-h"},
 			wantCode:   0,
-			wantStderr: "Usage of dns-online",
+			wantStderr: "Usage of wait-dns-online",
 		},
 		{
 			name:       "mutually exclusive -4 and -6 exits 2",
@@ -301,7 +301,7 @@ func TestIntegrationBinarySignalTermination(t *testing.T) {
 		t.Fatalf("failed to start binary: %v", err)
 	}
 
-	// Wait until dns-online has registered its signal handler and entered WaitForDNS.
+	// Wait until wait-dns-online has registered its signal handler and entered WaitForDNS.
 	ready := make(chan struct{})
 	go func() {
 		defer close(ready)
@@ -317,7 +317,7 @@ func TestIntegrationBinarySignalTermination(t *testing.T) {
 	case <-ready:
 	case <-time.After(3 * time.Second):
 		_ = cmd.Process.Kill()
-		t.Fatal("timed out waiting for dns-online startup log")
+		t.Fatal("timed out waiting for wait-dns-online startup log")
 	}
 
 	if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
@@ -546,9 +546,9 @@ func TestIntegrationLiveUDPDNSServer(t *testing.T) {
 }
 
 func TestIntegrationSystemdUnitFile(t *testing.T) {
-	raw, err := os.ReadFile("systemd/dns-online.service")
+	raw, err := os.ReadFile("systemd/wait-dns-online.service")
 	if err != nil {
-		t.Fatalf("reading systemd/dns-online.service: %v", err)
+		t.Fatalf("reading systemd/wait-dns-online.service: %v", err)
 	}
 	unit := string(raw)
 
@@ -559,7 +559,7 @@ func TestIntegrationSystemdUnitFile(t *testing.T) {
 		"Type=oneshot",
 	} {
 		if !strings.Contains(unit, required) {
-			t.Errorf("systemd/dns-online.service missing %q", required)
+			t.Errorf("systemd/wait-dns-online.service missing %q", required)
 		}
 	}
 
@@ -567,8 +567,8 @@ func TestIntegrationSystemdUnitFile(t *testing.T) {
 		t.Skip("systemd-analyze not installed; skipping unit verification")
 	}
 
-	tmpUnit := filepath.Join(t.TempDir(), "dns-online.service")
-	patched := strings.ReplaceAll(unit, "/usr/bin/dns-online", integrationBinary)
+	tmpUnit := filepath.Join(t.TempDir(), "wait-dns-online.service")
+	patched := strings.ReplaceAll(unit, "/usr/bin/wait-dns-online", integrationBinary)
 	if err := os.WriteFile(tmpUnit, []byte(patched), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -648,7 +648,7 @@ func TestIntegrationSystemdNFSOrdering(t *testing.T) {
 		t.Skip("systemd binary not found; skipping systemd ordering integration test")
 	}
 
-	tmpDir, err := os.MkdirTemp("", "dns-online-systemd-ordering-*")
+	tmpDir, err := os.MkdirTemp("", "wait-dns-online-systemd-ordering-*")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -662,18 +662,18 @@ func TestIntegrationSystemdNFSOrdering(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Place repository's dns-online.service (pointing ExecStart to compiled test binary)
+	// Place repository's wait-dns-online.service (pointing ExecStart to compiled test binary)
 	// and enable it under remote-fs.target.wants, matching [Install] WantedBy=remote-fs.target.
-	rawUnit, err := os.ReadFile("systemd/dns-online.service")
+	rawUnit, err := os.ReadFile("systemd/wait-dns-online.service")
 	if err != nil {
-		t.Fatalf("reading systemd/dns-online.service: %v", err)
+		t.Fatalf("reading systemd/wait-dns-online.service: %v", err)
 	}
-	dnsOnlineUnitPath := filepath.Join(unitsDir, "dns-online.service")
-	patchedUnit := strings.ReplaceAll(string(rawUnit), "/usr/bin/dns-online", integrationBinary)
+	dnsOnlineUnitPath := filepath.Join(unitsDir, "wait-dns-online.service")
+	patchedUnit := strings.ReplaceAll(string(rawUnit), "/usr/bin/wait-dns-online", integrationBinary)
 	if err := os.WriteFile(dnsOnlineUnitPath, []byte(patchedUnit), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink("../dns-online.service", filepath.Join(unitsDir, "remote-fs.target.wants", "dns-online.service")); err != nil {
+	if err := os.Symlink("../wait-dns-online.service", filepath.Join(unitsDir, "remote-fs.target.wants", "wait-dns-online.service")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -753,7 +753,7 @@ func TestIntegrationSystemdNFSOrdering(t *testing.T) {
 	// Ensure systemd did not detect any ordering cycle involving our units.
 	for _, line := range strings.Split(output, "\n") {
 		if strings.Contains(line, "Ordering cycle") || strings.Contains(line, "Breaking ordering cycle") {
-			for _, u := range []string{"dns-online.service", "remote-fs-pre.target", nfsMountUnit, "remote-fs.target"} {
+			for _, u := range []string{"wait-dns-online.service", "remote-fs-pre.target", nfsMountUnit, "remote-fs.target"} {
 				if strings.Contains(line, u) {
 					t.Errorf("systemd reported an ordering cycle involving %s: %s", u, line)
 				}
@@ -763,13 +763,13 @@ func TestIntegrationSystemdNFSOrdering(t *testing.T) {
 
 	units := parseSystemdTestDump(output)
 
-	dnsOnline := units["dns-online.service"]
+	dnsOnline := units["wait-dns-online.service"]
 	remoteFsPre := units["remote-fs-pre.target"]
 	nfsMount := units[nfsMountUnit]
 	remoteFs := units["remote-fs.target"]
 
 	for name, u := range map[string]*systemdUnitDump{
-		"dns-online.service":   dnsOnline,
+		"wait-dns-online.service":   dnsOnline,
 		"remote-fs-pre.target": remoteFsPre,
 		nfsMountUnit:           nfsMount,
 		"remote-fs.target":     remoteFs,
@@ -783,26 +783,26 @@ func TestIntegrationSystemdNFSOrdering(t *testing.T) {
 	}
 
 	if dnsOnline.fragmentPath != dnsOnlineUnitPath {
-		t.Errorf("dns-online.service loaded from %q, want test unit %q", dnsOnline.fragmentPath, dnsOnlineUnitPath)
+		t.Errorf("wait-dns-online.service loaded from %q, want test unit %q", dnsOnline.fragmentPath, dnsOnlineUnitPath)
 	}
 
 	// Verify full ordering chain:
-	// network-online.target & nss-lookup.target -> dns-online.service -> remote-fs-pre.target -> mnt-testnfs.mount -> remote-fs.target
+	// network-online.target & nss-lookup.target -> wait-dns-online.service -> remote-fs-pre.target -> mnt-testnfs.mount -> remote-fs.target
 	if !dnsOnline.after["network-online.target"] {
-		t.Errorf("dns-online.service missing After=network-online.target (After=%v)", dnsOnline.after)
+		t.Errorf("wait-dns-online.service missing After=network-online.target (After=%v)", dnsOnline.after)
 	}
 	if !dnsOnline.after["nss-lookup.target"] {
-		t.Errorf("dns-online.service missing After=nss-lookup.target (After=%v)", dnsOnline.after)
+		t.Errorf("wait-dns-online.service missing After=nss-lookup.target (After=%v)", dnsOnline.after)
 	}
 	if !dnsOnline.wants["remote-fs-pre.target"] {
-		t.Errorf("dns-online.service missing Wants=remote-fs-pre.target (Wants=%v)", dnsOnline.wants)
+		t.Errorf("wait-dns-online.service missing Wants=remote-fs-pre.target (Wants=%v)", dnsOnline.wants)
 	}
 	if !dnsOnline.before["remote-fs-pre.target"] {
-		t.Errorf("dns-online.service missing Before=remote-fs-pre.target (Before=%v)", dnsOnline.before)
+		t.Errorf("wait-dns-online.service missing Before=remote-fs-pre.target (Before=%v)", dnsOnline.before)
 	}
 
-	if !remoteFsPre.after["dns-online.service"] {
-		t.Errorf("remote-fs-pre.target missing After=dns-online.service (After=%v)", remoteFsPre.after)
+	if !remoteFsPre.after["wait-dns-online.service"] {
+		t.Errorf("remote-fs-pre.target missing After=wait-dns-online.service (After=%v)", remoteFsPre.after)
 	}
 	if !remoteFsPre.before[nfsMountUnit] {
 		t.Errorf("remote-fs-pre.target missing Before=%s (Before=%v)", nfsMountUnit, remoteFsPre.before)

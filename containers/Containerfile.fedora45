@@ -1,11 +1,11 @@
-# Reusable Fedora 45 builder container for dns-online
+# Reusable Fedora 45 builder container for wait-dns-online
 #
 # 1. Build the reusable builder image once:
-#      podman build -f containers/Containerfile.fedora45 -t dns-online-builder:fedora45 .
+#      podman build -f containers/Containerfile.fedora45 -t wait-dns-online-builder:fedora45 .
 #
 # 2. Run the container anytime to build the binary and RPMs from the mounted workspace:
 #      mkdir -p dist/fedora45
-#      podman run --rm -v .:/src:ro,Z -v ./dist/fedora45:/out:Z dns-online-builder:fedora45
+#      podman run --rm -v .:/src:ro,Z -v ./dist/fedora45:/out:Z wait-dns-online-builder:fedora45
 
 FROM registry.fedoraproject.org/fedora:45
 

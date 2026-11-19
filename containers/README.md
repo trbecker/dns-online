@@ -1,6 +1,6 @@
 # Obtaining and Using Red Hat Activation Keys for Container Builds
 
-This guide explains how to create a Red Hat Subscription Management (RHSM) activation key, find your Organization ID, build the reusable builder containers ([Containerfile.rhel8](Containerfile.rhel8), [Containerfile.rhel9](Containerfile.rhel9), [Containerfile.rhel10](Containerfile.rhel10), [Containerfile.fedora44](Containerfile.fedora44), [Containerfile.fedora45](Containerfile.fedora45)), and run them to package `dns-online`.
+This guide explains how to create a Red Hat Subscription Management (RHSM) activation key, find your Organization ID, build the reusable builder containers ([Containerfile.rhel8](Containerfile.rhel8), [Containerfile.rhel9](Containerfile.rhel9), [Containerfile.rhel10](Containerfile.rhel10), [Containerfile.fedora44](Containerfile.fedora44), [Containerfile.fedora45](Containerfile.fedora45)), and run them to package `wait-dns-online`.
 
 > **Note:** When building on a host that is already registered with `subscription-manager`, Podman automatically mounts host entitlements (`/etc/pki/entitlement` and `/etc/rhsm`) into the container build environment. You only need an activation key when building the RHEL images on unsubscribed hosts (such as Fedora, macOS, Windows, or CI runners).
 
@@ -73,13 +73,13 @@ Pass `rhsm.env` via `--secret id=rhsm,src=rhsm.env` for the RHEL images so your 
 
 ```bash
 # RHEL 8, 9, 10
-podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel8 -t dns-online-builder:rhel8 .
-podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel9 -t dns-online-builder:rhel9 .
-podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel10 -t dns-online-builder:rhel10 .
+podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel8 -t wait-dns-online-builder:rhel8 .
+podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel9 -t wait-dns-online-builder:rhel9 .
+podman build --secret id=rhsm,src=rhsm.env -f containers/Containerfile.rhel10 -t wait-dns-online-builder:rhel10 .
 
 # Fedora 44, 45 (no registration needed)
-podman build -f containers/Containerfile.fedora44 -t dns-online-builder:fedora44 .
-podman build -f containers/Containerfile.fedora45 -t dns-online-builder:fedora45 .
+podman build -f containers/Containerfile.fedora44 -t wait-dns-online-builder:fedora44 .
+podman build -f containers/Containerfile.fedora45 -t wait-dns-online-builder:fedora45 .
 ```
 
 ---
@@ -88,7 +88,7 @@ podman build -f containers/Containerfile.fedora45 -t dns-online-builder:fedora45
 
 Once a builder image is built, run it anytime by mounting the project source directory to `/src` and an output directory to `/out`. The container copies the source to an isolated temporary build tree, runs the unit tests with race detection and coverage, builds the binary and RPM/SRPM packages, and writes all artifacts and logs to `/out`:
 
-- `dns-online`: compiled binary
+- `wait-dns-online`: compiled binary
 - `*.rpm` / `*.src.rpm`: binary, debuginfo, and source RPM packages
 - `build.log`: combined binary build and `rpmbuild` log
 - `test.log`: verbose unit test log (`go test -v -race`)
@@ -103,6 +103,6 @@ for target in rhel8 rhel9 rhel10 fedora44 fedora45; do
     podman run --rm \
         -v .:/src:ro,Z \
         -v "./dist/${target}:/out:Z" \
-        "dns-online-builder:${target}"
+        "wait-dns-online-builder:${target}"
 done
 ```

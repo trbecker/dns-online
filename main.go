@@ -31,18 +31,18 @@ func run(
 		if errors.Is(err, flag.ErrHelp) {
 			return 0
 		}
-		fmt.Fprintf(stderr, "dns-online: configuration error: %v\n", err)
+		fmt.Fprintf(stderr, "wait-dns-online: configuration error: %v\n", err)
 		return 2
 	}
 
 	logf := func(format string, a ...any) {
 		if !cfg.Quiet {
-			fmt.Fprintf(stdout, "dns-online: "+format+"\n", a...)
+			fmt.Fprintf(stdout, "wait-dns-online: "+format+"\n", a...)
 		}
 	}
 
 	if err := WaitForDNS(ctx, cfg, resolver, logf); err != nil {
-		fmt.Fprintf(stderr, "dns-online: %v\n", err)
+		fmt.Fprintf(stderr, "wait-dns-online: %v\n", err)
 		return 1
 	}
 

@@ -4,12 +4,12 @@ set -euo pipefail
 SRC_DIR="${SRC_DIR:-/src}"
 OUT_DIR="${OUT_DIR:-/out}"
 
-if [ ! -f "${SRC_DIR}/dns-online.spec" ]; then
-    echo "Error: ${SRC_DIR}/dns-online.spec not found. Mount the project source directory to ${SRC_DIR} (e.g. -v .:/src:ro,Z)." >&2
+if [ ! -f "${SRC_DIR}/wait-dns-online.spec" ]; then
+    echo "Error: ${SRC_DIR}/wait-dns-online.spec not found. Mount the project source directory to ${SRC_DIR} (e.g. -v .:/src:ro,Z)." >&2
     exit 1
 fi
 
-VERSION="${VERSION:-$(awk '/^Version:/ {print $2}' "${SRC_DIR}/dns-online.spec")}"
+VERSION="${VERSION:-$(awk '/^Version:/ {print $2}' "${SRC_DIR}/wait-dns-online.spec")}"
 WORK_DIR="$(mktemp -d)"
 RPM_TOPDIR="${WORK_DIR}/rpmbuild"
 trap 'rm -rf "${WORK_DIR}"' EXIT
@@ -22,8 +22,8 @@ mkdir -p "${RPM_TOPDIR}/BUILD" \
          "${OUT_DIR}"
 
 # Copy source to an isolated build tree so we don't dirty the bind-mounted /src
-cp -a "${SRC_DIR}" "${WORK_DIR}/dns-online-${VERSION}"
-cd "${WORK_DIR}/dns-online-${VERSION}"
+cp -a "${SRC_DIR}" "${WORK_DIR}/wait-dns-online-${VERSION}"
+cd "${WORK_DIR}/wait-dns-online-${VERSION}"
 
 make clean
 
@@ -37,25 +37,25 @@ go test -v -race -tags "netcgo integration" -run '^TestIntegration' ./... 2>&1 |
 
 # Build binary and RPMs, saving full build log
 {
-    echo "=== Building dns-online binary ==="
+    echo "=== Building wait-dns-online binary ==="
     make build
 
     echo "=== Creating source tarball ==="
-    tar -C "${WORK_DIR}" -czf "${RPM_TOPDIR}/SOURCES/dns-online-${VERSION}.tar.gz" \
+    tar -C "${WORK_DIR}" -czf "${RPM_TOPDIR}/SOURCES/wait-dns-online-${VERSION}.tar.gz" \
         --exclude='.git' \
         --exclude='dist' \
         --exclude='*.rpm' \
         --exclude='*.out' \
         --exclude='coverage.*' \
         --exclude='rhsm.env' \
-        --exclude="dns-online-${VERSION}/dns-online" \
-        "dns-online-${VERSION}"
+        --exclude="wait-dns-online-${VERSION}/wait-dns-online" \
+        "wait-dns-online-${VERSION}"
 
     echo "=== Building RPM and SRPM packages ==="
-    rpmbuild -ba --define "_topdir ${RPM_TOPDIR}" dns-online.spec
+    rpmbuild -ba --define "_topdir ${RPM_TOPDIR}" wait-dns-online.spec
 } 2>&1 | tee "${OUT_DIR}/build.log"
 
-cp -v "${WORK_DIR}/dns-online-${VERSION}/dns-online" \
+cp -v "${WORK_DIR}/wait-dns-online-${VERSION}/wait-dns-online" \
       "${RPM_TOPDIR}"/RPMS/*/*.rpm \
       "${RPM_TOPDIR}"/SRPMS/*.rpm \
       "${OUT_DIR}/"

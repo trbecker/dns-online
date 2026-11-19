@@ -2,12 +2,12 @@
 # which leaves debugsourcefiles.list empty on older rpm-build (e.g. RHEL 8).
 %undefine _debugsource_packages
 
-Name:           dns-online
+Name:           wait-dns-online
 Version:        0.1.0
 Release:        1%{?dist}
 Summary:        Wait for DNS resolution before mounting remote filesystems
 License:        MIT
-URL:            https://github.com/trbecker/dns-online
+URL:            https://github.com/trbecker/wait-dns-online
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:  golang >= 1.21
@@ -15,7 +15,7 @@ BuildRequires:  systemd-rpm-macros
 %{?systemd_requires}
 
 %description
-dns-online is a lightweight CLI utility and systemd oneshot service that
+wait-dns-online is a lightweight CLI utility and systemd oneshot service that
 blocks until one or more target hostnames resolve via the system resolver
 (libc/NSS getaddrinfo). It orders remote filesystem mounts (nfs, nfs4, cifs,
 smb3, smbfs) in /etc/fstab after working DNS resolution is available during

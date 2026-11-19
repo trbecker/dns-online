@@ -14,10 +14,10 @@ import (
 	"github.com/bigkevmcd/go-configparser"
 )
 
-const DefaultConfigPath = "/etc/default/dns-online"
+const DefaultConfigPath = "/etc/default/wait-dns-online"
 const DefaultFstabPath = "/etc/fstab"
 
-// Config holds the runtime configuration for dns-online.
+// Config holds the runtime configuration for wait-dns-online.
 type Config struct {
 	ConfigPath    string
 	Hosts         []string
@@ -72,78 +72,78 @@ func ParseConfig(args []string, getenv func(string) string, stderr io.Writer) (*
 
 	// Apply config file + environment variables
 	var envHosts []string
-	if val, ok := lookup("DNS_ONLINE_HOSTS"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_HOSTS"); ok {
 		envHosts = splitHosts(val)
 	}
-	if val, ok := lookup("DNS_ONLINE_FSTAB"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_FSTAB"); ok {
 		b, err := strconv.ParseBool(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_FSTAB %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_FSTAB %q: %w", val, err)
 		}
 		cfg.UseFstab = b
 	}
-	if val, ok := lookup("DNS_ONLINE_FSTAB_PATH"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_FSTAB_PATH"); ok {
 		cfg.FstabPath = val
 	}
-	if val, ok := lookup("DNS_ONLINE_INCLUDE_NOAUTO"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_INCLUDE_NOAUTO"); ok {
 		b, err := strconv.ParseBool(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_INCLUDE_NOAUTO %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_INCLUDE_NOAUTO %q: %w", val, err)
 		}
 		cfg.IncludeNoauto = b
 	}
-	if val, ok := lookup("DNS_ONLINE_ANY"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_ANY"); ok {
 		b, err := strconv.ParseBool(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_ANY %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_ANY %q: %w", val, err)
 		}
 		cfg.WaitAny = b
 	}
-	if val, ok := lookup("DNS_ONLINE_TIMEOUT"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_TIMEOUT"); ok {
 		d, err := time.ParseDuration(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_TIMEOUT %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_TIMEOUT %q: %w", val, err)
 		}
 		cfg.Timeout = d
 	}
-	if val, ok := lookup("DNS_ONLINE_INTERVAL"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_INTERVAL"); ok {
 		d, err := time.ParseDuration(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_INTERVAL %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_INTERVAL %q: %w", val, err)
 		}
 		cfg.Interval = d
 	}
-	if val, ok := lookup("DNS_ONLINE_QUERY_TIMEOUT"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_QUERY_TIMEOUT"); ok {
 		d, err := time.ParseDuration(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_QUERY_TIMEOUT %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_QUERY_TIMEOUT %q: %w", val, err)
 		}
 		cfg.QueryTimeout = d
 	}
-	if val, ok := lookup("DNS_ONLINE_IPV4"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_IPV4"); ok {
 		b, err := strconv.ParseBool(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_IPV4 %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_IPV4 %q: %w", val, err)
 		}
 		cfg.IPv4Only = b
 	}
-	if val, ok := lookup("DNS_ONLINE_IPV6"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_IPV6"); ok {
 		b, err := strconv.ParseBool(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_IPV6 %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_IPV6 %q: %w", val, err)
 		}
 		cfg.IPv6Only = b
 	}
-	if val, ok := lookup("DNS_ONLINE_QUIET"); ok {
+	if val, ok := lookup("WAIT_DNS_ONLINE_QUIET"); ok {
 		b, err := strconv.ParseBool(val)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DNS_ONLINE_QUIET %q: %w", val, err)
+			return nil, fmt.Errorf("invalid WAIT_DNS_ONLINE_QUIET %q: %w", val, err)
 		}
 		cfg.Quiet = b
 	}
 
 	// Parse CLI flags
-	fs := flag.NewFlagSet("dns-online", flag.ContinueOnError)
+	fs := flag.NewFlagSet("wait-dns-online", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 
 	var hostsFlag string
@@ -206,7 +206,7 @@ func ParseConfig(args []string, getenv func(string) string, stderr io.Writer) (*
 	cfg.Hosts = deduplicateStrings(combinedHosts)
 
 	if len(cfg.Hosts) == 0 && !cfg.UseFstab {
-		return nil, errors.New("no hostnames specified (provide hostnames via CLI, DNS_ONLINE_HOSTS, or use -fstab)")
+		return nil, errors.New("no hostnames specified (provide hostnames via CLI, WAIT_DNS_ONLINE_HOSTS, or use -fstab)")
 	}
 
 	return cfg, nil
@@ -241,13 +241,13 @@ func detectConfigPath(args []string, getenv func(string) string) (string, bool) 
 			return strings.TrimPrefix(arg, "--config="), true
 		}
 	}
-	if envPath := getenv("DNS_ONLINE_CONFIG"); envPath != "" {
+	if envPath := getenv("WAIT_DNS_ONLINE_CONFIG"); envPath != "" {
 		return envPath, true
 	}
 	return DefaultConfigPath, false
 }
 
-// parseEnvFile parses a configuration file (such as /etc/default/dns-online) using go-configparser.
+// parseEnvFile parses a configuration file (such as /etc/default/wait-dns-online) using go-configparser.
 // It supports both INI-style files with section headers and headerless KEY=VALUE environment files.
 func parseEnvFile(path string) (map[string]string, error) {
 	raw, err := os.ReadFile(path)

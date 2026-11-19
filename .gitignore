@@ -1,5 +1,5 @@
 # Built binary
-/dns-online
+/wait-dns-online
 
 # Go build & test artifacts
 *.exe

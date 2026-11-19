@@ -1,26 +1,26 @@
-# Configuration for dns-online.service
+# Configuration for wait-dns-online.service
 #
 # Automatically discover NFS and CIFS/SMB server hostnames from /etc/fstab (nfs, nfs4, cifs, smb3, smbfs mounts).
-DNS_ONLINE_FSTAB=true
+WAIT_DNS_ONLINE_FSTAB=true
 
 # Optional: Additional or explicit space/comma-separated hostnames to resolve.
-# DNS_ONLINE_HOSTS="nfs.example.com backup-nas.example.com"
+# WAIT_DNS_ONLINE_HOSTS="nfs.example.com backup-nas.example.com"
 
 # Optional: Include fstab NFS/CIFS entries marked with the 'noauto' mount option.
-# DNS_ONLINE_INCLUDE_NOAUTO=false
+# WAIT_DNS_ONLINE_INCLUDE_NOAUTO=false
 
 # Optional: Succeed as soon as ANY target hostname resolves (default: false, wait for ALL).
-# DNS_ONLINE_ANY=false
+# WAIT_DNS_ONLINE_ANY=false
 
 # Maximum total time to wait for DNS resolution before failing (0 for no timeout).
-DNS_ONLINE_TIMEOUT=2m
+WAIT_DNS_ONLINE_TIMEOUT=2m
 
 # Polling interval between lookup attempts.
-DNS_ONLINE_INTERVAL=1s
+WAIT_DNS_ONLINE_INTERVAL=1s
 
 # Per-lookup query timeout.
-DNS_ONLINE_QUERY_TIMEOUT=5s
+WAIT_DNS_ONLINE_QUERY_TIMEOUT=5s
 
 # Optional: Restrict resolution to IPv4 (true) or IPv6 (true).
-# DNS_ONLINE_IPV4=false
-# DNS_ONLINE_IPV6=false
+# WAIT_DNS_ONLINE_IPV4=false
+# WAIT_DNS_ONLINE_IPV6=false

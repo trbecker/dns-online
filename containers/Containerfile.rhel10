@@ -33,7 +33,7 @@ RUN --mount=type=secret,id=rhsm,required=false \
         REGISTERED=1; \
     fi; \
     trap 'if [ "${REGISTERED}" -eq 1 ]; then subscription-manager unregister || true; fi' EXIT; \
-    dnf install -y gcc golang make rpm-build systemd-rpm-macros tar; \
+    dnf install -y gcc golang make rpm-build systemd systemd-rpm-macros tar; \
     dnf clean all
 
 COPY containers/build-pkg.sh /usr/local/bin/build-pkg.sh

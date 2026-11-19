@@ -32,6 +32,9 @@ go test -v -race -covermode=atomic -coverprofile="${OUT_DIR}/coverage.out" ./...
 go tool cover -func="${OUT_DIR}/coverage.out" 2>&1 | tee "${OUT_DIR}/coverage.txt"
 go tool cover -html="${OUT_DIR}/coverage.out" -o "${OUT_DIR}/coverage.html"
 
+# Run integration tests (compiled netcgo binary, live UDP DNS server, systemd ordering), saving results
+go test -v -race -tags "netcgo integration" -run '^TestIntegration' ./... 2>&1 | tee "${OUT_DIR}/integration-test.log"
+
 # Build binary and RPMs, saving full build log
 {
     echo "=== Building dns-online binary ==="

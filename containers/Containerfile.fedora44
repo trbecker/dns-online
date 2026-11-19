@@ -10,7 +10,7 @@
 FROM registry.fedoraproject.org/fedora:44
 
 RUN set -e; \
-    dnf install -y gcc golang make rpm-build systemd-rpm-macros tar; \
+    dnf install -y gcc golang make rpm-build systemd systemd-rpm-macros tar; \
     dnf clean all
 
 COPY containers/build-pkg.sh /usr/local/bin/build-pkg.sh

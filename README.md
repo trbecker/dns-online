@@ -16,6 +16,7 @@ It is specifically designed to order remote filesystem mounts (`nfs`, `nfs4`, `c
 ```bash
 make build
 make test
+make test-integration
 ```
 
 ## Installation (systemd)

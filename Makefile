@@ -7,7 +7,7 @@ GO          ?= go
 GOFLAGS     ?= -trimpath -tags netcgo
 LDFLAGS     ?= -s -w
 
-.PHONY: all build build-static test clean install uninstall
+.PHONY: all build build-static test test-integration clean install uninstall
 
 all: build
 
@@ -19,6 +19,9 @@ build-static:
 
 test:
 	$(GO) test -v -race ./...
+
+test-integration:
+	$(GO) test -v -race -tags "netcgo integration" -run '^TestIntegration' ./...
 
 clean:
 	rm -f $(BINARY)

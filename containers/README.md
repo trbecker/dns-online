@@ -91,7 +91,8 @@ Once a builder image is built, run it anytime by mounting the project source dir
 - `dns-online`: compiled binary
 - `*.rpm` / `*.src.rpm`: binary, debuginfo, and source RPM packages
 - `build.log`: combined binary build and `rpmbuild` log
-- `test.log`: verbose `go test -v -race` log
+- `test.log`: verbose unit test log (`go test -v -race`)
+- `integration-test.log`: verbose integration test log (`go test -v -race -tags "netcgo integration"`)
 - `coverage.out`: raw Go coverage profile
 - `coverage.txt`: per-function coverage summary (`go tool cover -func`)
 - `coverage.html`: HTML coverage report (`go tool cover -html`)

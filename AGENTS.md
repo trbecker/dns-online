@@ -12,6 +12,7 @@
 - `fstab.go`: Parses `/etc/fstab` (`ParseFstab` / `ParseFstabFile`) using `github.com/deniswernert/go-fstab` to extract unique server hostnames from `nfs`, `nfs4`, `cifs`, `smb3`, and `smbfs` entries. Ignores `noauto` entries unless `-include-noauto` (`DNS_ONLINE_INCLUDE_NOAUTO=true`) is enabled.
 - `resolver.go`: Implements `HostResolver` and `WaitForDNS`. Uses `&net.Resolver{PreferGo: false}` so lookups go through libc/NSS when built with `-tags netcgo`.
 - `main_test.go`: Unit tests covering `fstab` parsing, configuration precedence, retry loops, `-any` vs all-hosts mode, and timeouts.
+- `integration_test.go`: Integration tests (`-tags integration`) exercising the compiled `netcgo` binary, real libc/NSS lookups, `SIGTERM` handling, an in-process UDP DNS server with transient `SERVFAIL` recovery, and `systemd-analyze verify`.
 - `systemd/dns-online.service`: Systemd oneshot unit ordered before `remote-fs-pre.target`.
 - `systemd/dns-online.default`: Default environment config installed to `/etc/default/dns-online`.
 - `Makefile`: Standard build, static build, test, and install targets.
@@ -21,6 +22,9 @@
 ```bash
 # Run unit tests with the race detector
 make test
+
+# Run integration tests (builds and executes the netcgo binary and a local UDP DNS server)
+make test-integration
 
 # Build binary using libc/NSS resolver (-tags netcgo)
 make build

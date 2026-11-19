@@ -77,7 +77,7 @@ func unescapeFstabField(s string) string {
 // Supports standard "host:/path", "[ipv6]:/path", and comma-separated failover "host1,host2:/path".
 func extractNFSHosts(spec string) []string {
 	spec = strings.TrimSpace(spec)
-	if spec == "" {
+	if spec == "" || strings.Contains(spec, "://") {
 		return nil
 	}
 
@@ -111,7 +111,7 @@ func extractNFSHosts(spec string) []string {
 // Supports "//host/share", "//[ipv6]/share", and "\\host\share".
 func extractCIFSHosts(spec string) []string {
 	spec = strings.TrimSpace(spec)
-	if spec == "" {
+	if spec == "" || strings.Contains(spec, "://") {
 		return nil
 	}
 

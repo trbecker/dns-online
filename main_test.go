@@ -109,7 +109,7 @@ func TestParseInvalidFstab(t *testing.T) {
 				t.Fatal(writeErr)
 			}
 			var stderr bytes.Buffer
-			_, cfgErr := ParseConfig([]string{"-fstab", "-fstab-path", fstabFile}, func(string) string { return "" }, &stderr)
+			_, cfgErr := ParseConfig([]string{"-config=", "-fstab", "-fstab-path", fstabFile}, func(string) string { return "" }, &stderr)
 			if cfgErr == nil {
 				t.Fatalf("ParseConfig expected error containing %q, got nil", tc.wantErr)
 			}
@@ -173,7 +173,7 @@ func TestParseConfigCLIHosts(t *testing.T) {
 
 	t.Run("flag hosts comma and space separated", func(t *testing.T) {
 		var stderr bytes.Buffer
-		cfg, err := ParseConfig([]string{"-hosts", "flag1.local, flag2.local flag3.local"}, noopEnv, &stderr)
+		cfg, err := ParseConfig([]string{"-config=", "-hosts", "flag1.local, flag2.local flag3.local"}, noopEnv, &stderr)
 		if err != nil {
 			t.Fatalf("ParseConfig failed: %v", err)
 		}
@@ -185,7 +185,7 @@ func TestParseConfigCLIHosts(t *testing.T) {
 
 	t.Run("positional hosts with deduplication", func(t *testing.T) {
 		var stderr bytes.Buffer
-		cfg, err := ParseConfig([]string{"pos1.local", "pos2.local,pos1.local", "pos3.local"}, noopEnv, &stderr)
+		cfg, err := ParseConfig([]string{"-config=", "pos1.local", "pos2.local,pos1.local", "pos3.local"}, noopEnv, &stderr)
 		if err != nil {
 			t.Fatalf("ParseConfig failed: %v", err)
 		}
@@ -197,7 +197,7 @@ func TestParseConfigCLIHosts(t *testing.T) {
 
 	t.Run("flag hosts combined with positional hosts", func(t *testing.T) {
 		var stderr bytes.Buffer
-		cfg, err := ParseConfig([]string{"-hosts=flag1.local,flag2.local", "pos1.local", "flag1.local", "pos2.local"}, noopEnv, &stderr)
+		cfg, err := ParseConfig([]string{"-config=", "-hosts=flag1.local,flag2.local", "pos1.local", "flag1.local", "pos2.local"}, noopEnv, &stderr)
 		if err != nil {
 			t.Fatalf("ParseConfig failed: %v", err)
 		}
@@ -532,33 +532,33 @@ func TestParseConfigValidationErrors(t *testing.T) {
 		},
 		{
 			name:    "invalid duration in env",
-			args:    []string{"host.local"},
+			args:    []string{"-config=", "host.local"},
 			env:     map[string]string{"DNS_ONLINE_TIMEOUT": "notaduration"},
 			wantErr: "invalid DNS_ONLINE_TIMEOUT",
 		},
 		{
 			name:    "both -4 and -6 specified",
-			args:    []string{"-4", "-6", "host.local"},
+			args:    []string{"-config=", "-4", "-6", "host.local"},
 			wantErr: "cannot specify both -4",
 		},
 		{
 			name:    "zero interval",
-			args:    []string{"-interval=0s", "host.local"},
+			args:    []string{"-config=", "-interval=0s", "host.local"},
 			wantErr: "interval must be greater than 0",
 		},
 		{
 			name:    "zero query timeout",
-			args:    []string{"-query-timeout=0s", "host.local"},
+			args:    []string{"-config=", "-query-timeout=0s", "host.local"},
 			wantErr: "query-timeout must be greater than 0",
 		},
 		{
 			name:    "negative timeout",
-			args:    []string{"-timeout=-5s", "host.local"},
+			args:    []string{"-config=", "-timeout=-5s", "host.local"},
 			wantErr: "timeout cannot be negative",
 		},
 		{
 			name:    "no hosts and no fstab",
-			args:    []string{},
+			args:    []string{"-config="},
 			wantErr: "no hostnames specified",
 		},
 	}
@@ -593,32 +593,32 @@ func TestParseConfigInvalidCLIFlags(t *testing.T) {
 	}{
 		{
 			name:    "unknown flag",
-			args:    []string{"-unknown-flag", "host.local"},
+			args:    []string{"-config=", "-unknown-flag", "host.local"},
 			wantErr: "flag provided but not defined: -unknown-flag",
 		},
 		{
 			name:    "invalid boolean flag value",
-			args:    []string{"-fstab=notabool", "host.local"},
+			args:    []string{"-config=", "-fstab=notabool", "host.local"},
 			wantErr: "invalid boolean value \"notabool\" for -fstab",
 		},
 		{
 			name:    "invalid timeout duration flag value",
-			args:    []string{"-timeout=notaduration", "host.local"},
+			args:    []string{"-config=", "-timeout=notaduration", "host.local"},
 			wantErr: "invalid value \"notaduration\" for flag -timeout",
 		},
 		{
 			name:    "invalid interval duration flag value",
-			args:    []string{"-interval=notaduration", "host.local"},
+			args:    []string{"-config=", "-interval=notaduration", "host.local"},
 			wantErr: "invalid value \"notaduration\" for flag -interval",
 		},
 		{
 			name:    "invalid query-timeout duration flag value",
-			args:    []string{"-query-timeout=notaduration", "host.local"},
+			args:    []string{"-config=", "-query-timeout=notaduration", "host.local"},
 			wantErr: "invalid value \"notaduration\" for flag -query-timeout",
 		},
 		{
 			name:    "missing argument for value flag",
-			args:    []string{"-hosts"},
+			args:    []string{"-config=", "-hosts"},
 			wantErr: "flag needs an argument: -hosts",
 		},
 	}
@@ -748,7 +748,7 @@ func TestWaitForDNSTimeout(t *testing.T) {
 
 func TestIPv6Only(t *testing.T) {
 	var stderr bytes.Buffer
-	cfg, err := ParseConfig([]string{"-6", "ipv6-nas.local"}, func(string) string { return "" }, &stderr)
+	cfg, err := ParseConfig([]string{"-config=", "-6", "ipv6-nas.local"}, func(string) string { return "" }, &stderr)
 	if err != nil {
 		t.Fatalf("ParseConfig(-6) returned unexpected error: %v", err)
 	}
@@ -772,4 +772,117 @@ func TestIPv6Only(t *testing.T) {
 	if len(resolver.networks) != 1 || resolver.networks[0] != "ip6" {
 		t.Errorf("LookupIP network calls = %v, want [\"ip6\"]", resolver.networks)
 	}
+}
+
+func TestExtractInvalidRemoteSpecs(t *testing.T) {
+	invalidNFS := []string{
+		"",
+		"   ",
+		"no-colon-path",
+		":/missing-host",
+		"[2001:db8::1/missing-bracket",
+		"[]:/empty-bracket",
+		"user@nas.local:/export",
+		"nfs://fileserver.example.com/pub",
+	}
+	for _, spec := range invalidNFS {
+		if got := extractNFSHosts(spec); len(got) != 0 {
+			t.Errorf("extractNFSHosts(%q) = %v, want empty", spec, got)
+		}
+	}
+
+	invalidCIFS := []string{
+		"",
+		"   ",
+		"not-a-unc-path",
+		"//no-share",
+		"//user@smb.local/share",
+		"//smb.local:445/share",
+		"//[2001:db8::20]:445/share",
+		"//[2001:db8::20/missing-bracket",
+		"//[]/empty-bracket",
+		"smb://smb.local/share",
+		"cifs://smb.local/share",
+	}
+	for _, spec := range invalidCIFS {
+		if got := extractCIFSHosts(spec); len(got) != 0 {
+			t.Errorf("extractCIFSHosts(%q) = %v, want empty", spec, got)
+		}
+	}
+}
+
+func TestRunExitCodes(t *testing.T) {
+	noopEnv := func(string) string { return "" }
+
+	t.Run("help exits 0", func(t *testing.T) {
+		var stdout, stderr bytes.Buffer
+		code := run(context.Background(), []string{"-config=", "-h"}, noopEnv, &mockResolver{}, &stdout, &stderr)
+		if code != 0 {
+			t.Errorf("run(-h) = %d, want 0", code)
+		}
+	})
+
+	t.Run("resolved host exits 0 and logs unless quiet", func(t *testing.T) {
+		resolver := &mockResolver{
+			handler: func(host string, attempt int) ([]net.IP, error) {
+				return []net.IP{net.ParseIP("10.0.0.1")}, nil
+			},
+		}
+
+		var stdout, stderr bytes.Buffer
+		code := run(context.Background(), []string{"-config=", "nas.local"}, noopEnv, resolver, &stdout, &stderr)
+		if code != 0 {
+			t.Fatalf("run(nas.local) = %d, want 0 (stderr=%q)", code, stderr.String())
+		}
+		if !strings.Contains(stdout.String(), "Resolved nas.local") {
+			t.Errorf("expected stdout log containing resolved host, got %q", stdout.String())
+		}
+
+		stdout.Reset()
+		stderr.Reset()
+		code = run(context.Background(), []string{"-config=", "-quiet", "nas.local"}, noopEnv, resolver, &stdout, &stderr)
+		if code != 0 {
+			t.Fatalf("run(-quiet nas.local) = %d, want 0", code)
+		}
+		if stdout.Len() != 0 {
+			t.Errorf("expected empty stdout with -quiet, got %q", stdout.String())
+		}
+	})
+
+	t.Run("fstab with no remote mounts exits 0 immediately", func(t *testing.T) {
+		fstabFile := filepath.Join(t.TempDir(), "fstab")
+		if err := os.WriteFile(fstabFile, []byte("UUID=1234 / ext4 defaults 0 1\n"), 0600); err != nil {
+			t.Fatal(err)
+		}
+
+		var stdout, stderr bytes.Buffer
+		code := run(context.Background(), []string{"-config=", "-fstab", "-fstab-path", fstabFile}, noopEnv, &mockResolver{}, &stdout, &stderr)
+		if code != 0 {
+			t.Fatalf("run(-fstab empty) = %d, want 0 (stderr=%q)", code, stderr.String())
+		}
+	})
+
+	t.Run("lookup timeout exits 1", func(t *testing.T) {
+		resolver := &mockResolver{
+			handler: func(host string, attempt int) ([]net.IP, error) {
+				return nil, nil // empty IP slice with nil error
+			},
+		}
+
+		var stdout, stderr bytes.Buffer
+		code := run(
+			context.Background(),
+			[]string{"-config=", "-timeout=40ms", "-interval=10ms", "-query-timeout=10ms", "empty.local"},
+			noopEnv,
+			resolver,
+			&stdout,
+			&stderr,
+		)
+		if code != 1 {
+			t.Errorf("run(timeout) = %d, want 1", code)
+		}
+		if !strings.Contains(stderr.String(), "no addresses returned") {
+			t.Errorf("expected stderr to mention 'no addresses returned', got %q", stderr.String())
+		}
+	})
 }
